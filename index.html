@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZIDDI TV</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+
+    <style>
+        :root {
+            --bg: #0f111a;
+            --panel: #161824;
+            --neon: #00ff41;
+            --shadow: 15px 15px 30px #08090f, -10px -10px 25px #1e2131;
+        }
+
+        body {
+            background: var(--bg);
+            color: white;
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* Original Header */
+        .top-bar {
+            width: 100%;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-sizing: border-box;
+        }
+
+        /* Main Card Design */
+        .main-container {
+            width: 90%;
+            max-width: 400px;
+            background: var(--panel);
+            margin-top: 20px;
+            padding: 40px 15px;
+            border-radius: 40px;
+            box-shadow: var(--shadow);
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.03);
+        }
+
+        .main-container h2 {
+            color: var(--neon);
+            font-size: 2.2rem;
+            margin: 0;
+            letter-spacing: 4px;
+            font-weight: 800;
+        }
+
+        /* Channel Boxes */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .box {
+            background: var(--panel);
+            padding: 22px 5px;
+            border-radius: 22px;
+            box-shadow: 6px 6px 12px #08090f, -4px -4px 10px #1e2131;
+            cursor: pointer;
+            transition: 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .box:active {
+            box-shadow: inset 4px 4px 8px #08090f, inset -2px -2px 6px #1e2131;
+            transform: scale(0.95);
+        }
+
+        .box span { font-size: 24px; }
+
+        .box div {
+            font-size: 10px;
+            font-weight: bold;
+            margin-top: 8px;
+            color: #888;
+            text-transform: uppercase;
+        }
+
+        /* Player UI */
+        #player-ui {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #000;
+            z-index: 9999;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        video {
+            width: 100%;
+            aspect-ratio: 16/9;
+            background: #000;
+            border-top: 2px solid var(--neon);
+            border-bottom: 2px solid var(--neon);
+        }
+
+        .close-btn {
+            margin: 40px auto 0;
+            background: var(--neon);
+            color: #000;
+            border: none;
+            padding: 12px 60px;
+            border-radius: 30px;
+            font-weight: 900;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.4);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <h1 style="font-size: 1.1rem; margin:0; opacity: 0.8;">ZIDDI TV</h1>
+        <div style="background: var(--panel); padding: 10px; border-radius: 50%; box-shadow: 4px 4px 8px #08090f;">🌙</div>
+    </div>
+
+    <div class="main-container">
+        <h2>ZIDDI TV</h2>
+        <p style="font-size: 10px; color: #444; margin-top: 5px; letter-spacing: 1px;">PREMIUM LIVE STREAMING</p>
+        
+        <div class="grid" id="grid">
+            </div>
+    </div>
+
+    <div id="player-ui">
+        <video id="video" controls playsinline></video>
+        <button class="close-btn" onclick="stop()">CLOSE PLAYER</button>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCFy28nNtxhkjfpOd0aCfYkjHUwErh1WVQ",
+            authDomain: "movie-1e6fc.firebaseapp.com",
+            projectId: "movie-1e6fc",
+            databaseURL: "https://movie-1e6fc-default-rtdb.firebaseio.com"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const video = document.getElementById('video');
+        let hls = new Hls();
+
+        db.ref('live_links').on('value', snap => {
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '';
+            snap.forEach(child => {
+                const ch = child.val();
+                const div = document.createElement('div');
+                div.className = 'box';
+                div.innerHTML = `<span>📺</span><div>${ch.name}</div>`;
+                div.onclick = () => play(ch.url);
+                grid.appendChild(div);
+            });
+        });
+
+        function play(url) {
+            if(!url) return;
+            document.getElementById('player-ui').style.display = 'flex';
+
+            if (Hls.isSupported()) {
+                hls.destroy();
+                hls = new Hls();
+                hls.loadSource(url);
+                hls.attachMedia(video);
+                hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.src = url;
+                video.play();
+            }
+        }
+
+        function stop() {
+            video.pause();
+            hls.destroy();
+            document.getElementById('player-ui').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
