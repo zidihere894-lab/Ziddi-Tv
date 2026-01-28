@@ -7,141 +7,51 @@
     
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.3.5/shaka-player.compiled.js"></script>
 
     <style>
-        :root {
-            --bg: #0f111a;
-            --panel: #161824;
-            --neon: #00ff41;
-            --shadow: 15px 15px 30px #08090f, -10px -10px 25px #1e2131;
-        }
+        :root { --bg: #0f111a; --panel: #161824; --neon: #00ff41; --shadow: 15px 15px 30px #08090f, -10px -10px 25px #1e2131; }
+        body { background: var(--bg); color: white; font-family: sans-serif; margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+        
+        /* Main Card */
+        .main-container { width: 90%; max-width: 400px; background: var(--panel); margin-top: 40px; padding: 40px 15px; border-radius: 40px; box-shadow: var(--shadow); text-align: center; border: 1px solid rgba(255,255,255,0.03); position: relative; }
+        .main-container h2 { color: var(--neon); font-size: 2.2rem; margin: 0; letter-spacing: 4px; font-weight: 800; }
+        
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 30px; }
+        .box { background: var(--panel); padding: 22px 5px; border-radius: 22px; box-shadow: 6px 6px 12px #08090f, -4px -4px 10px #1e2131; cursor: pointer; transition: 0.2s; }
+        .box:active { transform: scale(0.95); box-shadow: inset 4px 4px 8px #08090f; }
+        .box div { font-size: 10px; font-weight: bold; margin-top: 8px; color: #888; text-transform: uppercase; }
 
-        body {
-            background: var(--bg);
-            color: white;
-            font-family: 'Segoe UI', sans-serif;
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-        }
-
-        /* Original Header */
-        .top-bar {
-            width: 100%;
-            padding: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-sizing: border-box;
-        }
-
-        /* Main Card Design */
-        .main-container {
-            width: 90%;
-            max-width: 400px;
-            background: var(--panel);
-            margin-top: 20px;
-            padding: 40px 15px;
-            border-radius: 40px;
-            box-shadow: var(--shadow);
-            text-align: center;
-            border: 1px solid rgba(255,255,255,0.03);
-        }
-
-        .main-container h2 {
-            color: var(--neon);
-            font-size: 2.2rem;
-            margin: 0;
-            letter-spacing: 4px;
-            font-weight: 800;
-        }
-
-        /* Channel Boxes */
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
-            margin-top: 30px;
-        }
-
-        .box {
-            background: var(--panel);
-            padding: 22px 5px;
-            border-radius: 22px;
-            box-shadow: 6px 6px 12px #08090f, -4px -4px 10px #1e2131;
-            cursor: pointer;
-            transition: 0.2s;
-            border: 1px solid transparent;
-        }
-
-        .box:active {
-            box-shadow: inset 4px 4px 8px #08090f, inset -2px -2px 6px #1e2131;
-            transform: scale(0.95);
-        }
-
-        .box span { font-size: 24px; }
-
-        .box div {
-            font-size: 10px;
-            font-weight: bold;
-            margin-top: 8px;
-            color: #888;
-            text-transform: uppercase;
-        }
+        /* Whatsapp Floating Button */
+        .wa-btn { position: fixed; bottom: 20px; right: 20px; background: #25d366; width: 60px; height: 60px; border-radius: 50%; display: flex; justify-content: center; align-items: center; box-shadow: 0 5px 15px rgba(0,0,0,0.3); z-index: 1000; text-decoration: none; transition: 0.3s; }
+        .wa-btn:hover { transform: scale(1.1); }
+        .wa-btn img { width: 35px; height: 35px; }
 
         /* Player UI */
-        #player-ui {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: #000;
-            z-index: 9999;
-            flex-direction: column;
-            justify-content: center;
-        }
-
-        video {
-            width: 100%;
-            aspect-ratio: 16/9;
-            background: #000;
-            border-top: 2px solid var(--neon);
-            border-bottom: 2px solid var(--neon);
-        }
-
-        .close-btn {
-            margin: 40px auto 0;
-            background: var(--neon);
-            color: #000;
-            border: none;
-            padding: 12px 60px;
-            border-radius: 30px;
-            font-weight: 900;
-            cursor: pointer;
-            box-shadow: 0 0 20px rgba(0, 255, 65, 0.4);
-        }
+        #player-ui { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 9999; flex-direction: column; justify-content: center; }
+        #video-container { width: 100%; aspect-ratio: 16/9; background: #000; border-top: 2px solid var(--neon); border-bottom: 2px solid var(--neon); }
+        video { width: 100%; height: 100%; }
+        .close-btn { margin: 40px auto 0; background: var(--neon); color: #000; border: none; padding: 12px 60px; border-radius: 30px; font-weight: 900; cursor: pointer; }
     </style>
 </head>
 <body>
 
-    <div class="top-bar">
-        <h1 style="font-size: 1.1rem; margin:0; opacity: 0.8;">ZIDDI TV</h1>
-        <div style="background: var(--panel); padding: 10px; border-radius: 50%; box-shadow: 4px 4px 8px #08090f;">🌙</div>
-    </div>
-
     <div class="main-container">
         <h2>ZIDDI TV</h2>
-        <p style="font-size: 10px; color: #444; margin-top: 5px; letter-spacing: 1px;">PREMIUM LIVE STREAMING</p>
-        
-        <div class="grid" id="grid">
-            </div>
+        <p style="font-size: 10px; color: #444; margin-top: 5px;">PREMIUM BYPASS ACTIVE</p>
+        <div class="grid" id="grid"></div>
     </div>
 
+    <a href="https://wa.me/923402439417" class="wa-btn" target="_blank">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WA">
+    </a>
+
     <div id="player-ui">
-        <video id="video" controls playsinline></video>
-        <button class="close-btn" onclick="stop()">CLOSE PLAYER</button>
+        <div id="video-container">
+            <video id="video" controls autoplay playsinline></video>
+        </div>
+        <p id="stat" style="color:var(--neon); font-size:12px; text-align:center; margin-top:10px;"></p>
+        <button class="close-btn" onclick="stop()">CLOSE</button>
     </div>
 
     <script>
@@ -153,43 +63,55 @@
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-        const video = document.getElementById('video');
-        let hls = new Hls();
+        
+        let player;
 
+        // Load Channels
         db.ref('live_links').on('value', snap => {
-            const grid = document.getElementById('grid');
-            grid.innerHTML = '';
+            const grid = document.getElementById('grid'); grid.innerHTML = '';
             snap.forEach(child => {
                 const ch = child.val();
                 const div = document.createElement('div');
                 div.className = 'box';
                 div.innerHTML = `<span>📺</span><div>${ch.name}</div>`;
-                div.onclick = () => play(ch.url);
+                div.onclick = () => loadStream(ch.url, ch.name);
                 grid.appendChild(div);
             });
         });
 
-        function play(url) {
-            if(!url) return;
-            document.getElementById('player-ui').style.display = 'flex';
+        async function initPlayer() {
+            shaka.polyfill.installAll();
+            const video = document.getElementById('video');
+            player = new shaka.Player(video);
+            player.addEventListener('error', onErrorEvent);
+        }
 
-            if (Hls.isSupported()) {
-                hls.destroy();
-                hls = new Hls();
-                hls.loadSource(url);
-                hls.attachMedia(video);
-                hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
-            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                video.src = url;
-                video.play();
+        async function loadStream(url, name) {
+            if (!player) await initPlayer();
+            document.getElementById('player-ui').style.display = 'flex';
+            document.getElementById('stat').innerText = "Connecting to " + name + "...";
+
+            // CORS Proxy to fix Jazz/Tamasha
+            const proxiedUrl = "https://api.allorigins.win/raw?url=" + encodeURIComponent(url);
+
+            try {
+                await player.load(proxiedUrl);
+                document.getElementById('stat').innerText = "Playing: " + name;
+            } catch (e) {
+                // If proxy fails, try direct
+                try { await player.load(url); } catch(err) { alert("Stream Error!"); }
             }
         }
 
         function stop() {
+            const video = document.getElementById('video');
             video.pause();
-            hls.destroy();
             document.getElementById('player-ui').style.display = 'none';
         }
+
+        function onErrorEvent(event) { console.error('Error code', event.detail.code, 'object', event.detail); }
+        
+        initPlayer();
     </script>
 </body>
 </html>
